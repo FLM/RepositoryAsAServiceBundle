@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 class RegisterRepositoriesPass implements CompilerPassInterface {
 
     protected function generateServiceName($entity) {
-        return strtolower(str_replace(Array('Bundle\\','Entity\\','\\'),Array('','','.'),$entity)).'.repository';
+        return strtolower(str_replace(Array('Bundle\\','Entity\\','\\'),Array('\\','','.'),$entity)).'.repository';
     }
     public function process(ContainerBuilder $container) {
 
