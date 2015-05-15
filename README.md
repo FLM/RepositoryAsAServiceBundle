@@ -5,4 +5,4 @@ Bundle which register all repositories found as services.
 
 Example
 =======
-Repository for ``Foo\BarBundle\Entity\Foo`` entity is available as service ``@foo.barbundle.foo.repository``
+Repository for ``Foo\BarBundle\Entity\Foo`` entity is available as service ``@foo.bar.foo.repository``
