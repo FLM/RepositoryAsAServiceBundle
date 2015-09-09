@@ -24,6 +24,14 @@ class RegisterRepositoriesPass implements CompilerPassInterface {
         if(!$container->has('doctrine.orm.default_entity_manager'))
             return;
 
+        $param = 'jz.repository_as_a_service.base_repository';
+        $baseService = false;
+        if ($container->hasParameter($param)) {
+            $p = $container->getParameter($param);
+            if ($container->has($p)) {
+                $baseService = $p;
+            }
+        }
         $em = $container->get('doctrine')->getManager();
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         foreach ($metadata as $m) {
@@ -31,11 +39,16 @@ class RegisterRepositoriesPass implements CompilerPassInterface {
             $repositoryName='Doctrine\ORM\EntityRepository';
             if($m->customRepositoryClassName)
                 $repositoryName=$m->customRepositoryClassName;
+
             if(!$container->has($name)) {
-                $container->register($name,$repositoryName)
+                $def = $container->register($name,$repositoryName);
+                $def
                     ->setFactoryService('doctrine.orm.entity_manager')
                     ->setFactoryMethod('getRepository')
                     ->addArgument($m->getName());
+                if ($baseService) {
+                    $def->setDecoratedService($baseService);
+                }
             }
         }
     }
