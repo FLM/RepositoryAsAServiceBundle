@@ -43,13 +43,12 @@ class RegisterRepositoriesPass implements CompilerPassInterface {
 
             if(!$container->has($name)) {
                 if ($baseService) {
-                    $def = new DefinitionDecorator($baseService);
-                    $def->setFactoryService('doctrine.orm.entity_manager');
-                    $def->setFactoryMethod('getRepository');
+                    $def = $container->register($name,$repositoryName)
+                        ->setFactoryService('doctrine.orm.entity_manager')
+                        ->setFactoryMethod('getRepository')
+                        ->addArgument($m->getName());
                     $def->setMethodCalls($container->getDefinition($baseService)->getMethodCalls());
-                    $def->addArgument($m->getName());
                     $def->setProperties($container->getDefinition($baseService)->getProperties());
-                    $container->setDefinition($name, $def);
                 } else {
                     $def = $container->register($name,$repositoryName)
                         ->setFactoryService('doctrine.orm.entity_manager')
