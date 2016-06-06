@@ -13,17 +13,23 @@ namespace JZ\RepositoryAsAServiceBundle\Compiler;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
-use Symfony\Component\DependencyInjection\DefinitionDecorator;
+use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
-class RegisterRepositoriesPass implements CompilerPassInterface {
+class RegisterRepositoriesPass implements CompilerPassInterface
+{
 
-    protected function generateServiceName($entity) {
+    protected function generateServiceName($entity)
+    {
         return strtolower(str_replace(Array('Bundle\\','Entity\\','\\'),Array('\\','','.'),$entity)).'.repository';
     }
-    public function process(ContainerBuilder $container) {
 
-        if(!$container->has('doctrine.orm.default_entity_manager'))
+    public function process(ContainerBuilder $container)
+    {
+
+        if (!$container->has('doctrine.orm.default_entity_manager')) {
             return;
+        }
 
         $param = 'jz.repository_as_a_service.base_repository';
         $baseService = false;
@@ -33,27 +39,43 @@ class RegisterRepositoriesPass implements CompilerPassInterface {
                 $baseService = $p;
             }
         }
-        $em = $container->get('doctrine')->getManager();
+
+        $em       = $container->get('doctrine')->getManager();
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         foreach ($metadata as $m) {
-            $name=$this->generateServiceName($m->getName());
-            $repositoryName='Doctrine\ORM\EntityRepository';
-            if($m->customRepositoryClassName)
-                $repositoryName=$m->customRepositoryClassName;
+            $name           = $this->generateServiceName($m->getName());
+            $repositoryName = 'Doctrine\ORM\EntityRepository';
+            if ($m->customRepositoryClassName) {
+                $repositoryName = $m->customRepositoryClassName;
+            }
+            if (!$container->has($name)) {
 
-            if(!$container->has($name)) {
                 if ($baseService) {
-                    $def = $container->register($name,$repositoryName)
-                        ->setFactoryService('doctrine.orm.entity_manager')
-                        ->setFactoryMethod('getRepository')
-                        ->addArgument($m->getName());
-                    $def->setMethodCalls($container->getDefinition($baseService)->getMethodCalls());
-                    $def->setProperties($container->getDefinition($baseService)->getProperties());
+                    $definition = new Definition($repositoryName);
+                    if (method_exists($definition, 'setFactory')) { //compatibility with symfony 3.0
+                        $definition->setFactory(Array(new Reference('doctrine.orm.entity_manager'), 'getRepository'));
+                    } else {
+                        $definition
+                            ->setFactoryService('doctrine.orm.entity_manager')
+                            ->setFactoryMethod('getRepository');
+
+                    }
+                    $definition->addArgument($m->getName());
+                    $definition->setMethodCalls($container->getDefinition($baseService)->getMethodCalls());
+                    $definition->setProperties($container->getDefinition($baseService)->getProperties());
+                    $container->setDefinition($name, $definition);
                 } else {
-                    $def = $container->register($name,$repositoryName)
-                        ->setFactoryService('doctrine.orm.entity_manager')
-                        ->setFactoryMethod('getRepository')
-                        ->addArgument($m->getName());
+                    $definition = new Definition($repositoryName);
+                    if (method_exists($definition, 'setFactory')) { //compatibility with symfony 3.0
+                        $definition->setFactory(Array(new Reference('doctrine.orm.entity_manager'), 'getRepository'));
+                    } else {
+                        $definition
+                            ->setFactoryService('doctrine.orm.entity_manager')
+                            ->setFactoryMethod('getRepository');
+
+                    }
+                    $definition->addArgument($m->getName());
+                    $container->setDefinition($name, $definition);
                 }
             }
         }
